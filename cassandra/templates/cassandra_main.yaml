@@ -5,8 +5,55 @@ metadata:
   namespace: {{ .Values.cassandra.namespace }}
 data:
   cassandra-main.yaml: |
-# Cassandra storage config YAML
+    server_encryption_options:
+        internode_encryption: none
+        keystore: value.yaml
+        keystore_password: Aa123456
+        truststore: values.yaml
+        truststore_password: Aa123456
+        # More advanced defaults below:
+        # protocol: TLS
+        # algorithm: SunX509
+        # store_type: JKS
+        # cipher_suites: [TLS_RSA_WITH_AES_128_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA,TLS_DHE_RSA_WITH_AES_128_CBC_SHA,TLS_DHE_RSA_WITH_AES_256_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA]
+        # require_client_auth: false
 
+    # enable or disable client/server encryption.
+    #client_encryption_options:
+    #    enabled: false
+    #    keystore: <%= @cassandra_truststore_dir %>/.keystore
+    #    keystore_password: Aa123456
+    client_encryption_options:
+        enabled: false
+        keystore: Values.yaml
+        keystore_password: Aa123456
+        # require_client_auth: false
+        # Set trustore and truststore_password if require_client_auth is true
+        # truststore: conf/.truststore
+        # truststore_password: cassandra
+        # More advanced defaults below:
+        # protocol: TLS
+        # algorithm: SunX509
+        # store_type: JKS
+        # cipher_suites: [TLS_RSA_WITH_AES_128_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA,TLS_DHE_RSA_WITH_AES_128_CBC_SHA,TLS_DHE_RSA_WITH_AES_256_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA]
+
+    # internode_compression controls whether traffic between nodes is
+    # compressed.
+    # can be:  all  - all traffic is compressed
+    #          dc   - traffic between different datacenters is compressed
+    #          none - nothing is compressed.
+    internode_compression: all
+
+    # Enable or disable tcp_nodelay for inter-dc communication.
+    # Disabling it will result in larger (but fewer) network packets being sent,
+    # reducing overhead from the TCP protocol itself, at the cost of increasing
+    # latency if you block for cross-datacenter responses.
+    inter_dc_tcp_nodelay: false
+
+    # GC Pauses greater than gc_warn_threshold_in_ms will be logged at WARN level
+    # Adjust the threshold based on your application throughput requirement
+    # By default, Cassandra logs GC Pauses greater than 200 ms at INFO level
+    # gc_warn_threshold_in_ms: 1000
     # NOTE:
     #   See http://wiki.apache.org/cassandra/StorageConfiguration for
     #   full explanations of configuration directives
@@ -539,7 +586,7 @@ data:
     # responsibility.
     incremental_backups: false
 
-   # Whether or not to take a snapshot before each compaction.  Be
+    # Whether or not to take a snapshot before each compaction.  Be
     # careful using this option, since Cassandra won't clean up the
     # snapshots for you.  Mostly useful if you're paranoid when there
     # is a data format change.
@@ -736,122 +783,8 @@ data:
     # controls how often to reset all host scores, allowing a bad host to
     # possibly recover
     dynamic_snitch_reset_interval_in_ms: 600000
-    # if set greater than zero and read_repair_chance is < 1.0, this will allow
-    # 'pinning' of replicas to hosts in order to increase cache capacity.
-    # The badness threshold will control how much worse the pinned host has to be
-    # before the dynamic snitch will prefer other replicas over it.  This is
-    # expressed as a double which represents a percentage.  Thus, a value of
-    # 0.2 means Cassandra would continue to prefer the static snitch values
-    # until the pinned host was 20% worse than the fastest.
     dynamic_snitch_badness_threshold: 0.1
-
-    # request_scheduler -- Set this to a class that implements
-    # RequestScheduler, which will schedule incoming client requests
-    # according to the specific policy. This is useful for multi-tenancy
-    # with a single Cassandra cluster.
-    # NOTE: This is specifically for requests from the client and does
-    # not affect inter node communication.
-    # org.apache.cassandra.scheduler.NoScheduler - No scheduling takes place
-    # org.apache.cassandra.scheduler.RoundRobinScheduler - Round robin of
-    # client requests to a node with a separate queue for each
-    # request_scheduler_id. The scheduler is further customized by
-    # request_scheduler_options as described below.
     request_scheduler: org.apache.cassandra.scheduler.NoScheduler
 
 # Scheduler Options vary based on the type of scheduler
-    # NoScheduler - Has no options
-    # RoundRobin
-    #  - throttle_limit -- The throttle_limit is the number of in-flight
-    #                      requests per client.  Requests beyond
-    #                      that limit are queued up until
-    #                      running requests can complete.
-    #                      The value of 80 here is twice the number of
-    #                      concurrent_reads + concurrent_writes.
-    #  - default_weight -- default_weight is optional and allows for
-    #                      overriding the default which is 1.
-    #  - weights -- Weights are optional and will default to 1 or the
-    #               overridden default_weight. The weight translates into how
-    #               many requests are handled during each turn of the
-    #               RoundRobin, based on the scheduler id.
-    #
-    # request_scheduler_options:
-    #    throttle_limit: 80
-    #    default_weight: 5
-    #    weights:
-    #      Keyspace1: 1
-    #      Keyspace2: 5
-
-    # request_scheduler_id -- An identifier based on which to perform
-    # the request scheduling. Currently the only valid option is keyspace.
-    # request_scheduler_id: keyspace
-
-    # Enable or disable inter-node encryption
-    # Default settings are TLS v1, RSA 1024-bit keys (it is imperative that
-    # users generate their own keys) TLS_RSA_WITH_AES_128_CBC_SHA as the cipher
-    # suite for authentication, key exchange and encryption of the actual data transfers.
-    # Use the DHE/ECDHE ciphers if running in FIPS 140 compliant mode.
-    # NOTE: No custom encryption options are enabled at the moment
-    # The available internode options are : all, none, dc, rack
-    #
-    # If set to dc cassandra will encrypt the traffic between the DCs
-    # If set to rack cassandra will encrypt the traffic between the racks
-    #
-    # The passwords used in these options must match the passwords used when generating
-    # the keystore and truststore.  For instructions on generating these files, see:
-    # http://download.oracle.com/javase/6/docs/technotes/guides/security/jsse/JSSERefGuide.html#CreateKeystore
-    #
-    #server_encryption_options:
-        #internode_encryption: none
-        #keystore: <%= @cassandra_truststore_dir %>/.keystore
-        #keystore_password: Aa123456
-        #truststore: <%= @cassandra_truststore_dir %>/.truststore
-        #truststore_password: Aa123456
-        server_encryption_options:
-        internode_encryption: none
-        keystore: value.yaml
-        keystore_password: Aa123456
-        truststore: values.yaml
-        truststore_password: Aa123456
-        # More advanced defaults below:
-        # protocol: TLS
-        # algorithm: SunX509
-        # store_type: JKS
-        # cipher_suites: [TLS_RSA_WITH_AES_128_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA,TLS_DHE_RSA_WITH_AES_128_CBC_SHA,TLS_DHE_RSA_WITH_AES_256_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA]
-        # require_client_auth: false
-
-    # enable or disable client/server encryption.
-    #client_encryption_options:
-    #    enabled: false
-    #    keystore: <%= @cassandra_truststore_dir %>/.keystore
-    #    keystore_password: Aa123456
-    client_encryption_options:
-        enabled: false
-        keystore: Values.yaml
-        keystore_password: Aa123456
-        # require_client_auth: false
-        # Set trustore and truststore_password if require_client_auth is true
-        # truststore: conf/.truststore
-        # truststore_password: cassandra
-        # More advanced defaults below:
-        # protocol: TLS
-        # algorithm: SunX509
-        # store_type: JKS
-        # cipher_suites: [TLS_RSA_WITH_AES_128_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA,TLS_DHE_RSA_WITH_AES_128_CBC_SHA,TLS_DHE_RSA_WITH_AES_256_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA]
-
-    # internode_compression controls whether traffic between nodes is
-    # compressed.
-    # can be:  all  - all traffic is compressed
-    #          dc   - traffic between different datacenters is compressed
-    #          none - nothing is compressed.
-    internode_compression: all
-
-    # Enable or disable tcp_nodelay for inter-dc communication.
-    # Disabling it will result in larger (but fewer) network packets being sent,
-    # reducing overhead from the TCP protocol itself, at the cost of increasing
-    # latency if you block for cross-datacenter responses.
-    inter_dc_tcp_nodelay: false
-
-    # GC Pauses greater than gc_warn_threshold_in_ms will be logged at WARN level
-    # Adjust the threshold based on your application throughput requirement
-    # By default, Cassandra logs GC Pauses greater than 200 ms at INFO level
-    # gc_warn_threshold_in_ms: 1000
+    
